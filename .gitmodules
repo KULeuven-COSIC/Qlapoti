@@ -1,0 +1,3 @@
+[submodule "ideal_to_isogeny/quaternion_helpers"]
+	path = ideal_to_isogeny/quaternion_helpers
+	url = git@github.com:Jonathke/quaternion_helpers.git
