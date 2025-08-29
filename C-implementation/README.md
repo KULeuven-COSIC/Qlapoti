@@ -1,216 +1,37 @@
-# SQIsign
+# SQIsign C implementation using qlapoti
 
-This library is a C implementation of SQIsign.
 
-## Requirements
+This library is a C implementation of SQIsign, modified to use the new qlapoti algorithm for the ideal-to-isogeny translation step. 
 
-- CMake (version 3.13 or later)
-- C11-compatible compiler
-- GMP (version 6.0.0 or later)
+## Differences to the SQIsign NIST round 2 submission
 
-### Pre-computation
+Differences compared to the state of [the SQIsign team's repo](https://www.github.com/SQIsign/the-sqisign) accessed on April 30, 2025.
 
-The constant values in the `src/precomp` directory were generated using the
-pre-computation scripts in the `scripts/precomp` directory. It is not necessary
-to execute these scripts to compile the project. The scripts have the following
-requirements:
-- [two-isogenies](https://github.com/ThetaIsogenies/two-isogenies)
-  (`Theta-SageMath` version).
-- [deuring-2D](https://github.com/Jonathke/deuring-2D)
+- Replaced the implementation of the function dim2id2iso_ideal_to_isogeny_clapotis in file src/id2iso/ref/lvlx/dim2id2so.c by a new Qlapoti-based version and removing the dependencies of the old version. This results in an almost full rewrite off the file.
+- In folder src/id2iso/ref/lvlx/test adaptation of the tests in dim2id2iso_test.c, test_dim2id2iso.c and test_id2iso_test.c, addition of benchmarking files dim2id2iso_benchmarks.c and qlapoti_normeq_benchmarks.c
+- Adaptation of src/id2iso/ref/lvlx/lvlx_test.cmake to compile the new benchmarking files.
+- Addition of a new constant for QUAT_cornacchia_extended_params in src/id2iso/ref/include/id2iso.h
+- In the scripts/precomp folder, adapt the files parameters.py, precompute_quaternion_constants.sage and precompute_quaternion_data.sage to remove the computation of additional orders and add the computation of parameters for the extended cornacchia algoritm.
+- In the src/precomp folder, overwrite all files with the output of the scripts in scripty/precomp by running `make precomp`
+- In the src/quaternion/ref/generic folder, add a file qlapoti.c containing the norm equation solving qlapoti algorithm. Add tests for all functions in this file in a file in test/qlapoti.c in the same folder, and make sure these tests are called from test_quaternions.c. Adapt CMakeLists.txt in this folder and the test/ folder it contains to compile these files. Add the public-facing quat_qlapoti function to quaternion.h, as well as the type definition for ibz_cornacchia_extended_params_t it requires and the headers of a few functions useful for testing in id2iso (quat_alg_elem_set, quat_lideal_equals, quat_lideal_mul, quat_alg_elem_equal).
+- In the files intbig.h and intbig.c, the argument to ibz_two_adic was made constant.
+- qlapoti needs some additional lower-level functions, which are added in the files where they fit best within the src/quaternion/ref/generic folder. For each of them, tests were added in the corresponding file in the src/quaternion/ref/generic/test/ folder, and headers in one of the header files in  src/uaternion/ref/internal_quaternion_headers/, if not in quaternion.h.
+  - dim2.c ibz_2x2_mul, ibz_mat_2x2_inv_with_det_as_denom
+  - intbig.c ibz_cornacchia_extended and its dependencies ibz_cornacchia_extended_prime_loop, ibz_complex_mul_by_complex_power, ibz_complex_mul
+  - The file rationals.c was moved from the hnf subfolder to the quaternion/ref/generic base folder, and all headers, inclusions and CmakeLists adapted accordingly.
+- For compiling, one line in .cmake/target was changed to "if (UNIX AND NOT APPLE)" from "if (UNIX)".
+- This README is entirely new, and the README of the SQIsign NIST round 2 implementation is copied to SQIsign_README.md
 
-## Build
 
-For a generic build
-```
-$ mkdir -p build
-$ cd build
-$ cmake -DSQISIGN_BUILD_TYPE=ref ..
-$ make
-$ make test
-```
+## Replicating our experimental results
 
-An optimized executable with debug code and assertions disabled can be built
-replacing the `cmake` command above by
-```
-cmake -DSQISIGN_BUILD_TYPE=<ref/broadwell> -DCMAKE_BUILD_TYPE=Release ..
-```
-
-## Build options
-
-CMake build options can be specified with `-D<BUILD_OPTION>=<VALUE>`.
-
-### SQISIGN_BUILD_TYPE
-
-Specifies the build type for which SQIsign is built. The currently supported values are:
-- `ref`: builds the plain reference implementation.
-- `opt`: builds the optimized implementation which is the same as the reference
-  implementation.
-- `broadwell`: builds an additional optimized implementation targeting the Intel
-  Broadwell architecture (and later). The optimizations are applied to the
-  finite field arithmetic.
-
-### GMP_LIBRARY
-
-If set to `SYSTEM` (by default), the gmp library on the system is dynamically linked.
-
-If set to `BUILD`, a custom gmp library is linked, which is built as part of the overall build process.
-In this case, the following further options are available:
-- `ENABLE_GMP_STATIC`: Does static linking against gmp. The default is `OFF`.
-- `GMP_BUILD_CONFIG_ARGS`: Provides additional config arguments for the gmp build (for example `--disable-assembly`). By default, no config arguments are provided.
-
-If set to `MINI`, the mini-gmp library is used, whose sources are included in the repository, in the folder `src/mini-gmp`. In this case, no copies of the full gmp library (system or custom-built) are required.
-
-### ENABLE_SIGN
-
-If set to `ON` (default), SQIsign is built with signature and verification functionality.
-If set to `OFF`, SQIsign is built with verification functionality only.
-In the latter case, GMP is no longer a dependency.
-
-### CMAKE_BUILD_TYPE
-
-Can be used to specify special build types. The options are:
-
-- `Release`: Builds with optimizations enabled and assertions disabled.
-- `Debug`: Builds with debug symbols.
-- `ASAN`: Builds with AddressSanitizer memory error detector.
-- `MSAN`: Builds with MemorySanitizer detector for uninitialized reads.
-- `LSAN`: Builds with LeakSanitizer for run-time memory leak detection.
-- `UBSAN`: Builds with UndefinedBehaviorSanitizer for undefined behavior detection.
-
-The default build type uses the flags `-O3 -Wstrict-prototypes -Wno-error=strict-prototypes -fvisibility=hidden -Wno-error=implicit-function-declaration -Wno-error=attributes`. (Notice that assertions remain enabled in this configuration, which harms performance.)
-
-## Test
-
-In the build directory, run `make test` or `ctest`.
-
-The test harness consists of the following units:
-
-- KAT test: `SQIsign_<level>_KAT`- tests against the KAT files in the `KAT`
-  directory.
-- Self-tests: `SQIsign_<level>_SELFTEST` - runs random self-tests
-  (key generation, signature and verification).
-- Sub-library specific unit-tests.
-
-Note that, `ctest` has a default timeout of 1500s, which is applied to all tests
-except the KAT tests. To override the default timeout, run
-`ctest --timeout <seconds>`.
-
-## Known Answer Tests (KAT)
-
-KAT are available in the `KAT` directory. They can be generated by running the
-apps built in the `apps` directory:
-```
-apps/PQCgenKAT_sign_<level>
-```
-
-A successful execution will generate the `.req` and `.rsp` files.
-
-A full KAT test is done as part of the test harness (see the [Test](#test)
-section).
-
-## Benchmarks
-
-A benchmarking suite is built and can be executed with the following command:
-```
-apps/benchmark_<level> [--iterations=<iterations>]
-```
-where `<level>` specifies the SQIsign parameter set and `<iterations>` is the
-number of iterations used for benchmarking; if the `--iterations` option is
-omitted, a default of 10 iterations is used.
-
-The benchmarks profile the key generation, signature and verification functions. The results are reported in CPU cycles if available on the host platform, and timing in nanoseconds otherwise.
-
-## Examples
-
-Example code that demonstrates how to use SQIsign with the NIST API is available
-in `apps/example_nistapi.c`.
-
-## Project Structure
-
-The source code consists of a number of sub-libraries used to implement the
-final SQIsign library:
-- `common`: common code for hash function, seed expansion, PRNG, memory handling.
-- `mp`: code for saturated-representation multiprecision arithmetic.
-- `gf`: GF(p^2) and GF(p) arithmetic.
-- `ec`: elliptic curves, isogenies and pairings. Everything that is purely
-   finite-fieldy.
-- `precomp`: constants and precomputed values.
-- `quaternion`: quaternion orders and ideals.
-- `hd`: code to compute (2,2)-isogenies in the theta model.
-- `id2iso`: code for Ideal <-> Iso.
-- `verification`: code for the verification protocol.
-- `signature`: code for the key generation and signature protocols.
-
-The dependencies are depicted below.
-```
- ┌─┬──────────┬─┐        ┌─┬──────────┬─┐      ┌─┬──────────┬─┐
- │ ├──────────┤ │        │ ├──────────┤ │      │ ├──────────┤ │
- │ │  Keygen  │ │        │ │   Sign   │ │      │ │  Verify  │ │
- │ ├──────────┤ │        │ ├──────────┤ │      │ ├──────────┤ │
- └─┴────┬─────┴─┘        └─┴────┬─────┴─┘      └─┴────┬─────┴─┘
-        │                       │                     │
-        └──────────────────┐    │                     │
-                           │    │                     │
-┌─────────────────┐    ┌───▼────▼────────┐            │
-│                 │    │                 │            │
-│   Quaternions   ◄────┤  Ideal <-> Iso  ├────────┐   │
-│                 │    │                 │        │   │
-└────────┬────────┘    └────────┬────────┘        │   │
-         │                      │                 │   │
-         │                      │     ┌───────────────┘
-         │                      │     │           │
-┌────────▼────────┐    ┌────────▼─────▼──┐    ┌───▼────────────┐
-│                 │    │                 │    │                │
-│ Multiprecision  │    │       2D        ├────► Precomputation │
-│ integers (GMP)  │    │    Isogenies    │    │                │
-│                 │    │                 │    │                │
-└─────────────────┘    └────────┬────────┘    └───▲────────────┘
-                                │                 │
-                                │                 │
-                                │                 │
-                       ┌────────▼────────┐        │
-                       │                 │        │
-                       │ Elliptic curves ├────────┘
-                       │   & isogenies   │
-                       │                 │
-                       └──┬───────────┬──┘
-                          │           │
-                          │           │
-                          │           │
-              ┌───────────▼───┐   ┌───▼───────────┐
-              │     GF(p)     │   │     Fixed     │
-              │       &       │   │   precision   │
-              │    GF(p^2)    │   │   integers    │
-              └───────────────┘   └───────────────┘
-```
-
-## Cortex-M4 implementation
-
-Verification routines are supported in 32-bit embedded architectures running on bare metal environments such as the ARM Cortex-M4, but they are not directly supported by the build system of the present repository. The [pqm4 project](https://github.com/mupq/pqm4) is supported for evaluating SQIsign verification in the ARM Cortex-M4.
-
-pqm4 assumes that the full NIST API (keypair generation, signing and verification) is available. Since only verification is supported, the remaining routines are mocked and must meet certain constraints, such as sharing the public key, signing a prespecified message and being of a specific size used by the testing and benchmarking binaries of pqm4. Therefore, additional KATs must be generated specifically for pqm4, which is done by a dedicated KAT generator for pqm4, found in `apps/PQCgenKAT_sign_pqm4.c`.
-
-A copy of the most recent version of pqm4 as of the round 2 submission deadline, including an implementation of SQIsign verification generated directly from this repository using the procedure explained next, is made available [here](https://github.com/SQISign/the-sqisign-pqm4), in the `sqisign` branch.
-
-If changes are made to the library, the `scripts/gen_pqm4_sources.sh` shell script can be run, from the root folder of the repository, to generate a pqm4-compatible folder structure in `src/pqm4/sqisign_lvl{1,3,5}`, which can then be copied to the `crypto_sign` folder of pqm4. Note that the pqm4 KAT generator is automatically run by this script.
-
-## Acknowledgements
-
-The reference implementation for finite field arithemtic (i.e., `src/gf/ref`)
-was generated using [modarith](https://github.com/mcarrickscott/modarith) by
-Michael Scott.
-
-## License
-
-SQIsign is licensed under Apache-2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
-
-Third party code is used in some files:
-
-- `src/common/aes_c.c`; MIT: "Copyright (c) 2016 Thomas Pornin <pornin@bolet.org>"
-- `src/common/fips202.c`: CC0: Copyright (c) 2023, the PQClean team
-- `src/common/randombytes_system.c`: MIT: Copyright (c) 2017 Daan Sprenkels <hello@dsprenkels.com>
-- `src/common/broadwell/{aes_ni.c, vaes256_key_expansion.S}`: Apache-2.0: Copyright 2019 Amazon.com, Inc.
-- `src/common/broadwell/ctr_drbg.c`: ISC: Copyright (c) 2017, Google Inc.
-- `src/mini-gmp/mini-gmp.c` and `src/mini-gmp/mini-gmp.h`: LGPLv3: Copyright 1991-1997, 1999-2022 Free Software Foundation, Inc.
-- `src/quaternion/ref/generic/dpe.h`: LGPLv3: Copyright (C) 2004-2024 Patrick Pelissier, Paul Zimmermann, LORIA/INRIA
-- `apps/PQCgenKAT_sign.c`, `apps/PQCgenKAT_sign_pqm4.c`, `src/common/ref/randombytes_ctrdrbg.c`, `test/test_kat.c`: by NIST (Public Domain)
+- Use a machine meeting the requirements of SQIsign's Round 2 NIST submission as stated in the requirements section of the SQIsign_README.md file.
+- Create a folder build/ inside C-implementation
+- Inside build/, run `cmake -DSQISIGN_BUILD_TYPE=ref -DCMAKE_BUILD_TYPE=Release ..` (optionally choose your C compiler by the flag `-DCMAKE_C_COMPILER`), then run `make`. No errors nor warnings should show.
+- For benchmarks of the full SQIsign signature, go into build/apps and run `./benchmark_lvl1 --iterations=<number of iterations>`. Change lvl1 to lvl3 or lvl5 for the other levels.
+- For benchmarks of idiso only, go into build/src/id2iso/ref/lvl1/test and run `./sqisign_id2iso_benchmark_dim2id2iso_lvl1 --iterations=<number of iterations>`. Change lvl1 to lvl3 or lvl5 for the other levels.
+- For heap memory usage, go into build/test and then run `valgrind -tool=massif ./sqisign_test_scheme_lvl1` then visualize the result by calling `ms-print` on the output file massif.out.<process-id>. For averaging, it is recommended to script generating and parsing the outputs. Change lvl1 to lvl3 or lvl5 for the other levels.
+- We also provide a tool for benchmarking the equation solving part of qlapoti separately from the isogeny computations. This can be done by running `./sqisign_id2iso_benchmark_qlapoti_normeq_lvl1 --iterations=<number of iterations>` in build/src/id2iso/ref/lvl1/test. Change lvl1 to lvl3 or lvl5 for the other levels.
+- For comparison, follow the exact same procedure in the SQIsign/the-sqisign repo's version from April 2025. The files sqisign_id2iso_benchmark_qlapoti_normeq and sqisign_id2iso_benchmark_dim2id2iso_lvl1 do not exist in that version. While the former is meaningless in that context, the latter can be copied into that codebase and made to compile with only minimal changes to some id2iso and quaternion files (essentially modifying lvlx_test.cmake in the src/id2iso/ref/lvlx/ folder to compile the new file, and make the function it depends on available to it, either by copying there headers into public header files if they are not yet there, or by copying them from the qlapoti code).
+- For rerunning the precomputations, run `make precomp` in the build folder (after cmake and make). This requires a very recent version of SageMath (10.5 for example). To use your new precomp files, re-run `make` afterwards.
+- To use or compile the code in other ways, please use the SQIsign NIST Round 2 README, provided in the SQIsign_README.md file.
