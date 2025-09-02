@@ -18,11 +18,3 @@ The ideal to isogeny algorithm is integrated with the sage implementation of
 PRISM, in the folder `applications/PRISM`. To verify the timings obtained in
 the paper go to that folder and run `sage --python -O test_prism.py`. Different
 security levels can be chosen inside the file.
-
-## SQISign
-
-The ideal to isogeny algorithm is integrated with an unofficial proof of
-concept implementation of SQIsign, which unfortunately is not provied as
-the authors did not want it to be publically shared. The timings were 
-measure in a similar manner as PRISM, except that the code currently only 
-supports NIST level I.
