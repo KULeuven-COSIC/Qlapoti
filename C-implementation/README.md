@@ -1,7 +1,7 @@
-# SQIsign C implementation using qlapoti
+# SQIsign C implementation using Qlapoti
 
 
-This library is a C implementation of SQIsign, modified to use the new qlapoti algorithm for the ideal-to-isogeny translation step. 
+This library is a C implementation of SQIsign, modified to use the new Qlapoti algorithm for the ideal-to-isogeny translation step. 
 
 ## Differences to the SQIsign NIST round 2 submission
 
@@ -12,7 +12,7 @@ Differences compared to the state of [the SQIsign team's repo](https://www.githu
 - Adaptation of src/id2iso/ref/lvlx/lvlx_test.cmake to compile the new benchmarking files.
 - Addition of a new constant for QUAT_cornacchia_extended_params in src/id2iso/ref/include/id2iso.h
 - In the scripts/precomp folder, adapt the files parameters.py, precompute_quaternion_constants.sage and precompute_quaternion_data.sage to remove the computation of additional orders and add the computation of parameters for the extended cornacchia algoritm.
-- In the src/precomp folder, overwrite all files with the output of the scripts in scripty/precomp by running `make precomp`
+- In the src/precomp folder, overwrite all files with the output of the scripts in scripts/precomp by running `make precomp`
 - In the src/quaternion/ref/generic folder, add a file qlapoti.c containing the norm equation solving qlapoti algorithm. Add tests for all functions in this file in a file in test/qlapoti.c in the same folder, and make sure these tests are called from test_quaternions.c. Adapt CMakeLists.txt in this folder and the test/ folder it contains to compile these files. Add the public-facing quat_qlapoti function to quaternion.h, as well as the type definition for ibz_cornacchia_extended_params_t it requires and the headers of a few functions useful for testing in id2iso (quat_alg_elem_set, quat_lideal_equals, quat_lideal_mul, quat_alg_elem_equal).
 - In the files intbig.h and intbig.c, the argument to ibz_two_adic was made constant.
 - qlapoti needs some additional lower-level functions, which are added in the files where they fit best within the src/quaternion/ref/generic folder. For each of them, tests were added in the corresponding file in the src/quaternion/ref/generic/test/ folder, and headers in one of the header files in  src/uaternion/ref/internal_quaternion_headers/, if not in quaternion.h.
