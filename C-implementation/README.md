@@ -3,6 +3,8 @@
 
 This library is a C implementation of SQIsign, modified to use the new Qlapoti algorithm for the ideal-to-isogeny translation step. 
 
+---------
+
 ## Differences to the SQIsign NIST round 2 submission
 
 Differences compared to the state of [the SQIsign team's repo](https://www.github.com/SQIsign/the-sqisign) accessed on April 30, 2025.
@@ -34,6 +36,8 @@ Differences compared to the state of [the SQIsign team's repo](https://www.githu
 - This README is entirely new, and the README of the SQIsign NIST round 2 implementation is copied to `SQIsign_README.md`
 
 
+---------
+
 ## Replicating our experimental results
 
 ### First setup and compilation
@@ -48,7 +52,7 @@ Differences compared to the state of [the SQIsign team's repo](https://www.githu
 
 - For benchmarks of the full SQIsign signature (as in Table 7 of the [paper](https://eprint.iacr.org/2025/1604.pdf)), go into `build/apps` and run `./benchmark_lvl1 --iterations=<number of iterations>`. Change lvl1 to lvl3 or lvl5 for the other levels.
 - For heap memory usage (as in Table 8 of the [paper](https://eprint.iacr.org/2025/1604.pdf)), go into `build/test` and then run `valgrind --tool=massif ./sqisign_test_scheme_lvl1`. Visualize the result by calling `ms_print` on the output file `massif.out.<process-id>`. For averaging, it is recommended to script generating and parsing the outputs. Change lvl1 to lvl3 or lvl5 for the other levels.
-- For the executable reported in Table 9 of the [paper](https://eprint.iacr.org/2025/1604.pdf), measure the disk space used by the files `sqisign_test_scheme_lvl1`, `sqisign_test_scheme_lvl3` and `sqisign_test_scheme_lvl5` in `build/test`.
+- For the executable sizes reported in Table 9 of the [paper](https://eprint.iacr.org/2025/1604.pdf), measure the disk space used by the files `sqisign_test_scheme_lvl1`, `sqisign_test_scheme_lvl3` and `sqisign_test_scheme_lvl5` in `build/test`.
 
 ### Other benchmarks available
 
